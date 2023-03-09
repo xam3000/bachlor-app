@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Move to the Music</string>
+    <string name="collect_data">Collect Data</string>
+    <string name="send_data">Send Data</string>
+    <string name="hello_world">Hello Square World!</string>
+    <string name="stop_collecting">Stop Collecting</string>
+</resources>
