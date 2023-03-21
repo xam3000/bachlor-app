@@ -17,6 +17,11 @@ public class SensorData implements  Serializable {
         this.timestamp = sensorEvent.timestamp - start;
         this.values = sensorEvent.values.clone();
     }
+    SensorData(float[] values, Long timestamp) {
+        this.timestamp = timestamp;
+        this.values = values;
+    }
+
 
     public String[] toStringArray() {
         List<String> strings = new ArrayList<>();

@@ -32,16 +32,19 @@ public class SendThread extends Thread{
 
     private final Map<String, List<SensorData>> sensorEvents;
 
+    private final List<SensorData> accuracyChange;
+
     private final File filesDir;
 
     private static final String LOG_TAG = "SendThread";
 
-    SendThread(String fileName, String fileNameEnding, Long delay, Map<String, List<SensorData>> sensorEvents, File filesDir){
+    SendThread(String fileName, String fileNameEnding, Long delay, Map<String, List<SensorData>> sensorEvents, File filesDir,List<SensorData> accuracyChange){
         this.fileName = fileName;
         this.fileNameEnding = fileNameEnding;
         this.delay = delay;
         this.sensorEvents = sensorEvents;
         this.filesDir = filesDir;
+        this.accuracyChange = accuracyChange;
     }
 
 
@@ -86,6 +89,19 @@ public class SendThread extends Thread{
                 e.printStackTrace();
             }
         });
+
+        try {
+            String[] header ={"timestamp", "sensor", "accuracy"};
+
+            CSVWriter writer = new CSVWriter(new FileWriter(new File(file,"accuracy.csv")));
+            writer.writeNext(header);
+            for (SensorData sensorData: accuracyChange) {
+                writer.writeNext(sensorData.toStringArray());
+            }
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
 
         File zip = new File(file.getPath() + ".zip");

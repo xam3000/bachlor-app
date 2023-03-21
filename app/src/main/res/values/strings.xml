@@ -4,4 +4,7 @@
     <string name="send_data">Send Data</string>
     <string name="hello_world">Hello Square World!</string>
     <string name="stop_collecting">Stop Collecting</string>
+    <string name="sync">Sync</string>
+    <string name="cancel">Cancel</string>
+    <string name="no_sync">No Sync!</string>
 </resources>

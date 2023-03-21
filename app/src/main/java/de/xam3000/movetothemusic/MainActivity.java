@@ -13,6 +13,7 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,20 +29,28 @@ public class MainActivity extends Activity implements SensorEventListener {
     //private final String LOG_TAG = "MainActivity";
 
     private Button sensorButton;
+    private Button syncButton;
 
     private String fileName = null;
     private String fileNameEnding = null;
 
     private boolean collecting = false;
+    private boolean syncing = false;
+
+    private TextView textView;
 
     private SensorManager sensorManager;
 
     private Map<String, List<SensorData>> sensorEvents;
 
+    private List<SensorData> accuracyChange;
+
     private MediaRecorder recorder = null;
 
-    private Long start = null;
-    private Long delay = null;
+    private SyncHelper syncHelper;
+
+    private static Long start = null;
+    //private Long delay = null;
 
 
     @Override
@@ -59,24 +68,31 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         sensorButton = findViewById(R.id.button_sensor);
         sendButton = findViewById(R.id.button_send_sensor);
+        syncButton = findViewById(R.id.button_sync);
+        textView = findViewById(R.id.textView);
 
         sensorButton.setOnClickListener((View view) -> collectSensorData());
 
         sendButton.setOnClickListener((View view) -> sendData());
 
+        syncButton.setOnClickListener((View view) -> sync());
+
         fileName = this.getFilesDir().toString();
         fileNameEnding = "audio.mp4";
         fileName += "/" + fileNameEnding;
+
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
 
     }
 
     private void sendData() {
-        new SendThread(fileName,fileNameEnding,delay,sensorEvents,getFilesDir()).start();
+        new SendThread(fileName,fileNameEnding,0L,sensorEvents,getFilesDir(),accuracyChange).start();
     }
 
     private void collectSensorData() {
-
+        if (start == null)
+            return;
         if (collecting) {
             sensorManager.unregisterListener(this);
             stopRecording();
@@ -84,7 +100,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         } else {
             sensorEvents = new HashMap<>();
-            sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
 
 
             sensorEvents.put(Sensor.STRING_TYPE_ACCELEROMETER, new ArrayList<>());
@@ -92,6 +108,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             sensorEvents.put(Sensor.STRING_TYPE_GYROSCOPE, new ArrayList<>());
             sensorEvents.put(Sensor.STRING_TYPE_LINEAR_ACCELERATION, new ArrayList<>());
             sensorEvents.put(Sensor.STRING_TYPE_ROTATION_VECTOR, new ArrayList<>());
+
+            accuracyChange = new ArrayList<>();
 
             startRecording();
 
@@ -106,6 +124,18 @@ public class MainActivity extends Activity implements SensorEventListener {
         collecting = !collecting;
     }
 
+    private void sync(){
+        if (syncing) {
+            sensorManager.unregisterListener(syncHelper);
+            syncButton.setText(R.string.sync);
+        } else {
+            syncHelper = new SyncHelper(this);
+            sensorManager.registerListener(syncHelper,sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),SensorManager.SENSOR_DELAY_FASTEST);
+            syncButton.setText(R.string.cancel);
+        }
+        syncing = !syncing;
+    }
+
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         Objects.requireNonNull(sensorEvents.get(sensorEvent.sensor.getStringType())).add(new SensorData(sensorEvent,start));
@@ -113,6 +143,11 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
+        long timestamp = SystemClock.elapsedRealtimeNanos();
+        float[] values = {sensor.getType(),i};
+        SensorData sensorData = new SensorData(values,timestamp - start);
+        accuracyChange.add(sensorData);
+        sensor.getType();
 
     }
 
@@ -129,7 +164,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         recorder.setOutputFile(fileName);
         recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         recorder.setAudioEncodingBitRate(128000);
-        recorder.setAudioSamplingRate(44000);
+        recorder.setAudioSamplingRate(44100);
 
         try {
             recorder.prepare();
@@ -137,12 +172,20 @@ public class MainActivity extends Activity implements SensorEventListener {
             final String LOG_TAG = "MainActivity";
             Log.e(LOG_TAG,  "prepare() failed");
         }
-        long before = SystemClock.elapsedRealtimeNanos();
+        //long before = SystemClock.elapsedRealtimeNanos();
         recorder.start();
-        long after = SystemClock.elapsedRealtimeNanos();
-        start = (after + before)/2;
-        delay = after - before;
+        //long after = SystemClock.elapsedRealtimeNanos();
+        //start = (after + before)/2;
+        //delay = after - before;
 
 
+    }
+
+    public void setStart(Long start) {
+        MainActivity.start = start;
+        sensorManager.unregisterListener(syncHelper);
+        syncButton.setText(R.string.sync);
+        textView.setText(start.toString());
+        syncing = false;
     }
 }
