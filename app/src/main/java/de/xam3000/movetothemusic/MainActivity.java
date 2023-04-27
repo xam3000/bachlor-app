@@ -3,6 +3,7 @@ package de.xam3000.movetothemusic;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -30,6 +31,8 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private Button sensorButton;
     private Button syncButton;
+
+    private Intent intent;
 
     private String fileName = null;
     private String fileNameEnding = null;
@@ -87,37 +90,41 @@ public class MainActivity extends Activity implements SensorEventListener {
     }
 
     private void sendData() {
-        new SendThread(fileName,fileNameEnding,0L,sensorEvents,getFilesDir(),accuracyChange).start();
+        //new SendThread(fileName,fileNameEnding,sensorEvents,getFilesDir()).start();
     }
 
     private void collectSensorData() {
         if (start == null)
             return;
         if (collecting) {
-            sensorManager.unregisterListener(this);
-            stopRecording();
+            //sensorManager.unregisterListener(this);
+            //stopRecording();
+
+            stopService(intent);
+
             sensorButton.setText(R.string.collect_data);
 
         } else {
-            sensorEvents = new HashMap<>();
+            /*sensorEvents = new HashMap<>();
 
 
 
             sensorEvents.put(Sensor.STRING_TYPE_ACCELEROMETER, new ArrayList<>());
-            sensorEvents.put(Sensor.STRING_TYPE_GRAVITY, new ArrayList<>());
             sensorEvents.put(Sensor.STRING_TYPE_GYROSCOPE, new ArrayList<>());
-            sensorEvents.put(Sensor.STRING_TYPE_LINEAR_ACCELERATION, new ArrayList<>());
-            sensorEvents.put(Sensor.STRING_TYPE_ROTATION_VECTOR, new ArrayList<>());
-
             accuracyChange = new ArrayList<>();
 
-            startRecording();
+            //startRecording();
 
             sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_FASTEST);
-            sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY), SensorManager.SENSOR_DELAY_FASTEST);
             sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_FASTEST);
-            sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION), SensorManager.SENSOR_DELAY_FASTEST);
-            sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_FASTEST);
+            */
+
+            intent = new Intent(this, CollectingService.class);
+            intent.putExtra("start",start);
+            intent.putExtra("folder",getFilesDir());
+            startService(intent);
+
+
 
             sensorButton.setText(R.string.stop_collecting);
         }

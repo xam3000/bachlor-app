@@ -35,4 +35,5 @@ dependencies {
     implementation 'androidx.wear:wear:1.2.0'
     implementation group: 'com.opencsv', name: 'opencsv', version: '5.7.1'
     implementation group: 'org.zeroturnaround', name: 'zt-zip', version: '1.15'
+    implementation 'org.slf4j:slf4j-simple:2.0.7'
 }

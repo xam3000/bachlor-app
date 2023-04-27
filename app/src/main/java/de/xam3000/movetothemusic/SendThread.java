@@ -25,88 +25,17 @@ import java.util.Objects;
 
 public class SendThread extends Thread{
 
-    private final String fileName;
-    private final String fileNameEnding;
-
-    private final Long delay;
-
-    private final Map<String, List<SensorData>> sensorEvents;
-
-    private final List<SensorData> accuracyChange;
-
-    private final File filesDir;
+    private final File zip;
 
     private static final String LOG_TAG = "SendThread";
 
-    SendThread(String fileName, String fileNameEnding, Long delay, Map<String, List<SensorData>> sensorEvents, File filesDir,List<SensorData> accuracyChange){
-        this.fileName = fileName;
-        this.fileNameEnding = fileNameEnding;
-        this.delay = delay;
-        this.sensorEvents = sensorEvents;
-        this.filesDir = filesDir;
-        this.accuracyChange = accuracyChange;
+    SendThread(File zip){
+        this.zip = zip;
     }
 
 
 
     public void run() {
-
-
-        File file = new File(filesDir, LocalDateTime.now().toString().replace(":","_"));
-
-        if (!file.mkdir()){
-            Log.e(LOG_TAG, "failed to create folder");
-            return;
-        }
-
-
-
-        File music = new File(fileName);
-        File copyMusic = new File(file, fileNameEnding);
-
-        try {
-            Files.copy(music.toPath(),copyMusic.toPath(), StandardCopyOption.COPY_ATTRIBUTES);
-            File delayFile = new File(file,"delay");
-            FileWriter writer = new FileWriter(delayFile);
-
-            writer.write(delay.toString());
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        sensorEvents.forEach((s, sensorData1) -> {
-            try {
-                String[] header ={"timestamp", "x", "y", "z"};
-
-                CSVWriter writer = new CSVWriter(new FileWriter(new File(file, s + ".csv")));
-                writer.writeNext(header);
-                for (SensorData sensorData2 : sensorData1) {
-                    writer.writeNext(sensorData2.toStringArray());
-                }
-                writer.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-
-        try {
-            String[] header ={"timestamp", "sensor", "accuracy"};
-
-            CSVWriter writer = new CSVWriter(new FileWriter(new File(file,"accuracy.csv")));
-            writer.writeNext(header);
-            for (SensorData sensorData: accuracyChange) {
-                writer.writeNext(sensorData.toStringArray());
-            }
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
-        File zip = new File(file.getPath() + ".zip");
-
-        ZipUtil.pack(file, zip);
 
         byte[] data = new byte[0];
         try {
@@ -114,8 +43,6 @@ public class SendThread extends Thread{
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
 
         if (data != null) {
             sendData(data, zip.getName());
