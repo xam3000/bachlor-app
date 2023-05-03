@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -85,6 +86,8 @@ public class MainActivity extends Activity implements SensorEventListener {
         fileName += "/" + fileNameEnding;
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
 
     }

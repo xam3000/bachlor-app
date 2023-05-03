@@ -1,16 +1,24 @@
 package de.xam3000.movetothemusic;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
 import android.os.IBinder;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
 
 import com.opencsv.CSVWriter;
 
@@ -47,6 +55,8 @@ public class CollectingService extends Service implements SensorEventListener {
 
     private File gyroFile = null;
 
+    private WakeLock wakeLock;
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -56,11 +66,39 @@ public class CollectingService extends Service implements SensorEventListener {
     @Override
     public void onCreate() {
         super.onCreate();
+        Notification notification = createNotification();
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        startForeground(1, notification);
     }
+
+    private Notification createNotification() {
+        String notificationChannelId = "MOVE TO THE MUSIC SERVICE CHANNEL";
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationChannel notificationChannel = new NotificationChannel(notificationChannelId,"Move to the Music notification channel",NotificationManager.IMPORTANCE_HIGH);
+        notificationChannel.setDescription("Move to the Music Notification Channel");
+        notificationChannel.enableLights(true);
+        notificationChannel.setLightColor(Color.RED);
+        notificationChannel.enableVibration(true);
+        notificationChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400, 300, 200, 400});
+
+        notificationManager.createNotificationChannel(notificationChannel);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, notificationChannelId)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("Recording")
+                .setContentText("Recording Motion Data😊")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        return builder.build();
+     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"MoveToTheMusic::wakeLocTag");
+        wakeLock.acquire();
 
         start =  intent.getLongExtra("start",0);
 
@@ -106,6 +144,9 @@ public class CollectingService extends Service implements SensorEventListener {
         sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_FASTEST);
 
+        KeepAliveThread kat = new KeepAliveThread();
+        kat.start();
+
         return START_STICKY;
     }
 
@@ -136,7 +177,8 @@ public class CollectingService extends Service implements SensorEventListener {
 
 
         new SendThread(zip).start();
-        //super.onDestroy();
+        wakeLock.release();
+      //super.onDestroy();
     }
 
     @Override
@@ -199,5 +241,24 @@ public class CollectingService extends Service implements SensorEventListener {
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
 
+    }
+
+
+    private static class KeepAliveThread extends Thread{
+        @Override
+        public void run() {
+            int i = 0;
+            int j = 1;
+
+            do {
+                i++;
+                j++;
+                try {
+                    sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } while (i != j);
+        }
     }
 }
